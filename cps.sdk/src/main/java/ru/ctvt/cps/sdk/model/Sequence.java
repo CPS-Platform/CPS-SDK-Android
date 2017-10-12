@@ -22,13 +22,16 @@ import ru.ctvt.cps.sdk.errorprocessing.BaseCpsException;
 import ru.ctvt.cps.sdk.errorprocessing.CPSErrorParser;
 import ru.ctvt.cps.sdk.network.Api;
 import ru.ctvt.cps.sdk.network.BaseResponse;
+import ru.ctvt.cps.sdk.network.TriggerResponse;
 import ru.ctvt.cps.sdk.network.ValueT;
 import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.inject.Inject;
 
@@ -349,6 +352,21 @@ public class Sequence<KeyType, ValueType>{
         Response<BaseResponse> response = apiWrapper.api.addDataByKey(parentDevice.getDeviceID(), sequenceName, dataItemID, valueT).execute();
         if(!response.isSuccessful())
             CPSErrorParser.throwCpsException(response.errorBody(), response.code());
+    }
+
+    public ArrayList<Trigger> fetchTriggers() throws IOException, BaseCpsException{
+        Response<BaseResponse<HashMap<String, TriggerResponse>>> response = apiWrapper.api.fetchTriggers(parentDevice.getDeviceID(), Trigger.TriggerContainer.sequenceTrigger.toString(), sequenceName).execute();
+        if(response.isSuccessful()) {
+            ArrayList<Trigger> triggers = new ArrayList<>();
+            for (Map.Entry<String, TriggerResponse> entry : response.body().data.entrySet()) {
+                Trigger trigger = new Trigger(entry.getValue().name, entry.getValue().trigger.serviceId, parentDevice.getDeviceID(), this.sequenceName, Trigger.TriggerContainer.sequenceTrigger, entry.getValue().trigger.name, entry.getValue().parameterValues, entry.getValue().enabled);
+                triggers.add(trigger);
+            }
+            return triggers;
+        }
+        else
+            CPSErrorParser.throwCpsException(response.errorBody(), response.code());
+        return null;
     }
 
     private class AddManyDataBodyParameter{

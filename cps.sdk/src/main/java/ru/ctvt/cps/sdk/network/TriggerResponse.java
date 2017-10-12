@@ -16,25 +16,27 @@ package ru.ctvt.cps.sdk.network;
 
 import com.google.gson.annotations.SerializedName;
 
+import org.json.JSONObject;
+
+import java.util.HashMap;
+
 /**
- * Данные об одном устройстве
+ * Данные об одном триггере
  */
-public class DeviceResponse {
-    @SerializedName("id")
-    public String id;
-
-    @SerializedName("owner_id")
-    public String ownerId;
-
-    @SerializedName("owner_service_id")
-    public String ownerServiceId;
-
-    @SerializedName("gateway_id")
-    public String gatewayId;
-
-    @SerializedName("created_at")
-    public String createdAt;
-
+public class TriggerResponse {
+    @SerializedName("parameter_values")
+    public HashMap<String, Object> parameterValues;
+    @SerializedName("trigger")
+    public Trigger trigger;
     @SerializedName("name")
     public String name;
+    @SerializedName("enabled")
+    public boolean enabled;
+
+    public class Trigger{
+        @SerializedName("name")
+        public String name;
+        @SerializedName("service_id")
+        public String serviceId;
+    }
 }

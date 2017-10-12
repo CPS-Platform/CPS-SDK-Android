@@ -15,26 +15,17 @@
 package ru.ctvt.cps.sdk.network;
 
 import com.google.gson.annotations.SerializedName;
+import com.google.gson.annotations.Until;
 
 /**
- * Данные об одном устройстве
+ * Created by ngrypie on 09.10.2017.
  */
-public class DeviceResponse {
-    @SerializedName("id")
-    public String id;
 
-    @SerializedName("owner_id")
-    public String ownerId;
+public class SystemResponse {
 
-    @SerializedName("owner_service_id")
-    public String ownerServiceId;
+    @SerializedName("status")
+    public String status;
 
-    @SerializedName("gateway_id")
-    public String gatewayId;
-
-    @SerializedName("created_at")
-    public String createdAt;
-
-    @SerializedName("name")
-    public String name;
+    @SerializedName("until")
+    public String until;
 }

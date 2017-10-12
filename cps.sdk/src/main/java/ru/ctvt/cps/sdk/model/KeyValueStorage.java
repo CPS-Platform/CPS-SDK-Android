@@ -82,7 +82,7 @@ public class KeyValueStorage {
         /**
          * контейнер "Пользователи"
          */
-        users("users"),
+        users("services/current/users"),
 
         /**
          * контейнер "Устройства"

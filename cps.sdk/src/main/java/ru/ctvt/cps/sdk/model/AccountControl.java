@@ -16,6 +16,8 @@ package ru.ctvt.cps.sdk.model;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.support.annotation.WorkerThread;
 
 import ru.ctvt.cps.sdk.SDKManager;
@@ -25,12 +27,14 @@ import ru.ctvt.cps.sdk.errorprocessing.authentication.WrongRoleException;
 import ru.ctvt.cps.sdk.network.Api;
 import ru.ctvt.cps.sdk.network.AuthResponse;
 import ru.ctvt.cps.sdk.network.BaseResponse;
+import ru.ctvt.cps.sdk.network.SystemResponse;
 import com.google.common.base.Strings;
 
 import java.io.IOException;
 
 import javax.inject.Inject;
 
+import okhttp3.ResponseBody;
 import retrofit2.Response;
 
 /**
@@ -137,6 +141,7 @@ public class AccountControl {
             String userToken = response.body().data.header;
             authToken = userToken;
 
+
             SharedPreferences mSharedPreferences = context.getSharedPreferences(SDKManager.PreferencesNameConsts.FILE_NAME, Context.MODE_PRIVATE);
             if (mSharedPreferences != null) {
                 mSharedPreferences.edit().putString(SDKManager.PreferencesNameConsts.AUTH_TOKEN, authToken).apply();
@@ -147,6 +152,7 @@ public class AccountControl {
                 mSharedPreferences.edit().putString(SDKManager.PreferencesNameConsts.ROLE, "user").apply();
             }
             user = new User(response.body().data.ownerEntityId, login);
+            user.fetchUser();
         } else
             CPSErrorParser.throwCpsException(response.errorBody(), response.code());
         return user;}
@@ -246,7 +252,7 @@ public class AccountControl {
         if(getRole() == Role.device) {
             SharedPreferences mSharedPreferences = context.getSharedPreferences(SDKManager.PreferencesNameConsts.FILE_NAME, Context.MODE_PRIVATE);
             if (isAuthorized() && mSharedPreferences.getString(SDKManager.PreferencesNameConsts.ROLE, "user").equals("device"))
-                return new RecorderDevice(mSharedPreferences.getString(SDKManager.PreferencesNameConsts.SERVICE_ID, ""));
+                return new RecorderDevice(mSharedPreferences.getString(SDKManager.PreferencesNameConsts.SERVICE_ID, ""), "recorder");
             else
                 return null;
         } else
@@ -258,8 +264,56 @@ public class AccountControl {
      */
     public RecorderDevice instantiateDeviceRecorder(final String serviceId) throws BaseCpsException {
         if (getRole() == Role.device)
-            return new RecorderDevice(serviceId);
+            return new RecorderDevice(serviceId, "recorder");
         else
             throw new WrongRoleException("expected: "+Role.device.name+", actual: "+getRole().name);
+    }
+
+    /**
+     * Получить лого сервиса в формате картинки Bitmap
+     *
+     * @param serviceId идентификатор сервиса
+     */
+    @WorkerThread
+    public Bitmap getServiceLogo(final String serviceId) throws IOException, BaseCpsException {
+        SharedPreferences mSharedPreferences = context.getSharedPreferences(SDKManager.PreferencesNameConsts.FILE_NAME, Context.MODE_PRIVATE);
+        if (mSharedPreferences.getString(SDKManager.PreferencesNameConsts.SERVICE_ID, "") != "" ){
+            Response<ResponseBody> response = api.getServiceLogo(serviceId).execute();
+            if (!response.isSuccessful())
+                CPSErrorParser.throwCpsException(response.errorBody(), response.code());
+            else
+            if (response.body() != null) {
+                Bitmap bmp = BitmapFactory.decodeStream(response.body().byteStream());
+                return bmp;
+            } else {
+                // TODO может ли быть нул? когда не загружена картинка приходит 404
+            }
+        }
+        //TODO бросить ошибку о том, что нет авторизационной сессии
+        return null;
+    }
+
+    /**
+     * Получить url на лого сервиса
+     *
+     * @param serviceId идентификатор сервиса
+     */
+    public String getServiceLogoURL(final String serviceId) throws IOException, BaseCpsException {
+        SharedPreferences mSharedPreferences = context.getSharedPreferences(SDKManager.PreferencesNameConsts.FILE_NAME, Context.MODE_PRIVATE);
+        if (mSharedPreferences.getString(SDKManager.PreferencesNameConsts.SERVICE_ID, "") != "" ) {
+            return "http://test.cps.fvds.ru/v0/services/" + serviceId + "/logo";
+        }
+        //TODO бросить ошибку о том, что нет авторизационной сессии
+        return null;
+    }
+
+    @WorkerThread
+    public String checkSystemStatus() throws IOException {
+        Response<BaseResponse<SystemResponse>> response = api.checkSystemStatus().execute();
+        if(response.isSuccessful()){
+            return response.body().data.status + " until: " + response.body().data.until;
+        }
+
+        else return "Back-end is down";
     }
 }

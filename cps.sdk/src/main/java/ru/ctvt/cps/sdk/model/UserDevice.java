@@ -20,6 +20,7 @@ import ru.ctvt.cps.sdk.errorprocessing.BaseCpsException;
 import ru.ctvt.cps.sdk.errorprocessing.CPSErrorParser;
 import ru.ctvt.cps.sdk.network.BaseResponse;
 import ru.ctvt.cps.sdk.network.CreatedDeviceResponse;
+import ru.ctvt.cps.sdk.network.DeviceResponse;
 
 import java.io.IOException;
 
@@ -43,8 +44,8 @@ public class UserDevice extends Device {
      * @param created_at дата создания
      * @param parentUser ссылка на объекта-родителя (владельца устройства)
      */
-    UserDevice(String deviceID, String service_id, String gateway_id, String created_at, User parentUser) {
-        super(deviceID, service_id);
+    UserDevice(String deviceID, String service_id, String gateway_id, String created_at, String name, User parentUser) {
+        super(deviceID, service_id, name);
 
         this.gateway_id = gateway_id;
         this.created_at = created_at;
@@ -86,6 +87,7 @@ public class UserDevice extends Device {
         return created_at;
     }
 
+
     /**
      * Привязать реальное устройство к сущности в платформе
      *
@@ -94,6 +96,16 @@ public class UserDevice extends Device {
     @WorkerThread
     public void setDeviceCode(String code) throws IOException, BaseCpsException {
         Response<BaseResponse<CreatedDeviceResponse>> response = api.setDeviceCode(this.getDeviceID(), code).execute();
+        if (!response.isSuccessful())
+            CPSErrorParser.throwCpsException(response.errorBody(), response.code());
+    }
+
+    /**
+     * Удаление устройства
+     */
+    @WorkerThread
+    public void deleteDevice() throws IOException, BaseCpsException {
+        Response<BaseResponse> response = api.deleteDevice(this.getDeviceID()).execute();
         if (!response.isSuccessful())
             CPSErrorParser.throwCpsException(response.errorBody(), response.code());
     }

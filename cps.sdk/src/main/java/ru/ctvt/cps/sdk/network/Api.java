@@ -15,13 +15,16 @@
 package ru.ctvt.cps.sdk.network;
 
 
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
+import ru.ctvt.cps.sdk.model.Trigger;
 import com.google.gson.JsonElement;
 
 import java.util.HashMap;
 import java.util.List;
 
+import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.DELETE;
@@ -51,12 +54,25 @@ public interface Api {
     String PARAM_COMMAND_ID = "command_id";
     String PARAM_SERVICE_ID = "service";
     String PARAM_DEVICE_CODE = "code";
+    String PARAM_DEVICE_NAME = "name";
     String PARAM_DEVICE_SECRET = "secret";
     String PARAM_SEQUENCE_NAME = "name";
     String PARAM_SEQUENCE_TYPE = "type";
     String PARAM_DATA_ITEM_ID = "data_item_id";
     String PARAM_CREATION_MODE = "creation_mode";
     String PARAM_BODY_FROM_JSON = "body";
+    String PARAM_USER_FIRSTNAME = "first_name";
+    String PARAM_USER_LASTNAME = "last_name";
+    String PARAM_TRIGGER_NAME = "triggerName";
+    String PARAM_TRIGGER_CONTAINER = "container";
+
+    /**
+     * Получение логотипа сервиса
+     *
+     * @param serviceId идентификатор сервиса
+     */
+    @GET("/v0/services/{" + PARAM_SERVICE_ID + "}/logo")
+    Call<ResponseBody> getServiceLogo(@Path(PARAM_SERVICE_ID) String serviceId);
 
     /* Запросы для работы с аккаунтом */
     //region Auth
@@ -70,6 +86,16 @@ public interface Api {
      * @param service_id ид сервиса
      * @return BaseResponse, в котором передаётся Header для дальнейшего использования его как ключ сессии
      */
+
+    /**
+     * Проверка статуса работы back-end
+     *
+     * @return
+     */
+    @GET("/v0/system/alive")
+    Call<BaseResponse<SystemResponse>> checkSystemStatus();
+
+
     @FormUrlEncoded
     @POST("/v0/auth/native/sign-in")
     Call<BaseResponse<AuthResponse>> login(@Field("email") String email, @Field("password") String password, @Field("set_cookie") boolean set_cookie, @Field("service") String service_id);
@@ -111,12 +137,38 @@ public interface Api {
     //region User
 
     /**
+     * Получение информации о текущем пользователе
+     * @return Имя, Фамилия
+     */
+    @GET("/v0/users/current")
+    Call<BaseResponse<UserResponse>> getUserInfo();
+
+    @PATCH("/v0/users/current")
+    Call<BaseResponse<UserResponse>> putUserInfo(@Query(PARAM_USER_FIRSTNAME) String firstName, @Query(PARAM_USER_LASTNAME) String lastName);
+
+
+    /**
      * Получение списка устройств пользователя, возвращает список данных устройства (идентификаторы)
      *
      * @return BaseResponse
      */
-    @GET("/v0/users/current/devices")
+    @GET("/v0/services/current/users/current/devices")
     Call<BaseResponse<List<DeviceResponse>>> getDevices();
+
+    /**
+     * Получение аватара пользователя
+     *
+     */
+    @GET("/v0/users/current/avatar")
+    Call<ResponseBody> getUserAvatar();
+
+    /**
+     * Отправка аватара
+     *
+     * @param base64 картинка в формате строки base64
+     */
+    @PUT("/v0/users/current/avatar")
+    Call<BaseResponse> setUserAvatar(@Body String base64);
 
     //endregion User
 
@@ -198,14 +250,33 @@ public interface Api {
      * Добавление устройства с привязкой, используя полученный код
      *
      * @param userId     id пользователя
+     * @param deviceName имя устройства
      * @param deviceCode одноразовый пароль для привязки. Если null - устройство будет добавлено без привязки
      * @return
      */
-    @POST("/v0/users/{" + PARAM_ID + "}/devices")
+    @POST("/v0/services/current/users/{" + PARAM_ID + "}/devices")
     Call<BaseResponse<DeviceResponse>> addNewDevice(@Path(PARAM_ID) String userId,
-                                                    @Query(PARAM_DEVICE_CODE) String deviceCode);
+                                                    @Query(PARAM_DEVICE_CODE) String deviceCode,
+                                                    @NonNull @Query(PARAM_DEVICE_NAME) String deviceName);
 
+    /**
+     * Редактирование имени устройства
+     *
+     * @param newDeviceName новое имя устройства
+     * @param deviceId id устройства
+     * @return
+     */
+    @PATCH("/v0/devices/{" + PARAM_DEVICE_ID + "}")
+    Call<BaseResponse<DeviceResponse>> editDevice(@Path(PARAM_DEVICE_ID) String deviceId, @Query(PARAM_DEVICE_NAME) String newDeviceName);
 
+    /**
+     * Удаление устройства
+     *
+     * @param deviceId идентификатор устройства
+     * @return
+     */
+    @DELETE("/v0/devices/{" + PARAM_DEVICE_ID + "}")
+    Call<BaseResponse> deleteDevice(@Path(PARAM_DEVICE_ID) String deviceId);
     //endregion Device
 
     //region Key Value Storage
@@ -218,8 +289,8 @@ public interface Api {
      * @param kvs_visibility может быть передано: local - для получения Local KVS и public - для получения Public KVS
      * @return BaseResponse Набор ключей и значений KVS
      */
-    @GET("/v0/{" + PARAM_KVS_CONTAINER + "}/{" + PARAM_ID + "}/kv/{" + PARAM_KVS_VISIBILITY + "}")
-    Call<BaseResponse<HashMap<String, HashMap<String, Object>>>> getKVStorage(@Path(PARAM_KVS_CONTAINER) String kvs_container,
+    @GET("/v0/{container}/{" + PARAM_ID + "}/kv/{" + PARAM_KVS_VISIBILITY + "}")
+    Call<BaseResponse<HashMap<String, HashMap<String, Object>>>> getKVStorage(@Path(value = "container", encoded = true) String kvs_container,
                                                                               @Path(PARAM_ID) String id,
                                                                               @Path(PARAM_KVS_VISIBILITY) String kvs_visibility);
 
@@ -233,14 +304,14 @@ public interface Api {
      * @param group_name     имя группы
      * @return BaseResponse Набор ключей и значений группы
      */
-    @GET("/v0/{" + PARAM_KVS_CONTAINER + "}/{" + PARAM_ID + "}/kv/{" + PARAM_KVS_VISIBILITY + "}/{" + PARAM_GROUP_NAME + "}")
-    Call<BaseResponse<HashMap<String, Object>>> getKVGroup(@Path(PARAM_KVS_CONTAINER) String kvs_container,
+    @GET("/v0/{container}/{" + PARAM_ID + "}/kv/{" + PARAM_KVS_VISIBILITY + "}/{" + PARAM_GROUP_NAME + "}")
+    Call<BaseResponse<HashMap<String, Object>>> getKVGroup(@Path(value = "container", encoded = true) String kvs_container,
                                                                         @Path(PARAM_ID) String id,
                                                                         @Path(PARAM_KVS_VISIBILITY) String kvs_visibility,
                                                                         @Path(PARAM_GROUP_NAME) String group_name);
 
-    @GET("/v0/{" + PARAM_KVS_CONTAINER + "}/{" + PARAM_ID + "}/kv/{" + PARAM_KVS_VISIBILITY + "}/{" + PARAM_GROUP_NAME + "}")
-    Call<BaseResponse<HashMap<String, JsonElement>>> getKVGroupAsObject(@Path(PARAM_KVS_CONTAINER) String kvs_container,
+    @GET("/v0/{container}/{" + PARAM_ID + "}/kv/{" + PARAM_KVS_VISIBILITY + "}/{" + PARAM_GROUP_NAME + "}")
+    Call<BaseResponse<HashMap<String, JsonElement>>> getKVGroupAsObject(@Path(value = "container", encoded = true) String kvs_container,
                                                                         @Path(PARAM_ID) String id,
                                                                         @Path(PARAM_KVS_VISIBILITY) String kvs_visibility,
                                                                         @Path(PARAM_GROUP_NAME) String group_name);
@@ -255,15 +326,15 @@ public interface Api {
      * @param key_name       имя ключа
      * @return BaseResponse Объект - значение
      */
-    @GET("/v0/{" + PARAM_KVS_CONTAINER + "}/{" + PARAM_ID + "}/kv/{" + PARAM_KVS_VISIBILITY + "}/{" + PARAM_GROUP_NAME + "}/{" + PARAM_KEY_NAME + "}")
-    Call<BaseResponse<Object>> getValue(@Path(PARAM_KVS_CONTAINER) String kvs_container,
+    @GET("/v0/{container}/{" + PARAM_ID + "}/kv/{" + PARAM_KVS_VISIBILITY + "}/{" + PARAM_GROUP_NAME + "}/{" + PARAM_KEY_NAME + "}")
+    Call<BaseResponse<Object>> getValue(@Path(value = "container", encoded = true) String kvs_container,
                                                @Path(PARAM_ID) String id,
                                                @Path(PARAM_KVS_VISIBILITY) String kvs_visibility,
                                                @Path(PARAM_GROUP_NAME) String group_name,
                                                @Path(PARAM_KEY_NAME) String key_name);
 
-    @GET("/v0/{" + PARAM_KVS_CONTAINER + "}/{" + PARAM_ID + "}/kv/{" + PARAM_KVS_VISIBILITY + "}/{" + PARAM_GROUP_NAME + "}/{" + PARAM_KEY_NAME + "}")
-    Call<BaseResponse<JsonElement>> getValueAsObject(@Path(PARAM_KVS_CONTAINER) String kvs_container,
+    @GET("/v0/{container}/{" + PARAM_ID + "}/kv/{" + PARAM_KVS_VISIBILITY + "}/{" + PARAM_GROUP_NAME + "}/{" + PARAM_KEY_NAME + "}")
+    Call<BaseResponse<JsonElement>> getValueAsObject(@Path(value = "container", encoded = true) String kvs_container,
                                                      @Path(PARAM_ID) String id,
                                                      @Path(PARAM_KVS_VISIBILITY) String kvs_visibility,
                                                      @Path(PARAM_GROUP_NAME) String group_name,
@@ -280,8 +351,8 @@ public interface Api {
      * @param keyValueGroup  объект - группа, хранящий в себе ключи и значения
      * @return BaseResponse Основная информация о запросе ( статус, код, сообщение, данные)
      */
-    @PUT("/v0/{" + PARAM_KVS_CONTAINER + "}/{" + PARAM_ID + "}/kv/{" + PARAM_KVS_VISIBILITY + "}/{" + PARAM_GROUP_NAME + "}")
-    Call<BaseResponse<String>> putGroup(@Path(PARAM_KVS_CONTAINER) String kvs_container,
+    @PUT("/v0/{container}/{" + PARAM_ID + "}/kv/{" + PARAM_KVS_VISIBILITY + "}/{" + PARAM_GROUP_NAME + "}")
+    Call<BaseResponse<String>> putGroup(@Path(value = "container", encoded = true) String kvs_container,
                                         @Path(PARAM_ID) String id,
                                         @Path(PARAM_KVS_VISIBILITY) String kvs_visibility,
                                         @Path(PARAM_GROUP_NAME) String group_name,
@@ -298,8 +369,8 @@ public interface Api {
      * @param value          объект - значение
      * @return BaseResponse Основная информация о запросе ( статус, код, сообщение, данные)
      */
-    @PUT("/v0/{" + PARAM_KVS_CONTAINER + "}/{" + PARAM_ID + "}/kv/{" + PARAM_KVS_VISIBILITY + "}/{" + PARAM_GROUP_NAME + "}/{" + PARAM_KEY_NAME + "}")
-    Call<BaseResponse> putValue(@Path(PARAM_KVS_CONTAINER) String kvs_container,
+    @PUT("/v0/{container}/{" + PARAM_ID + "}/kv/{" + PARAM_KVS_VISIBILITY + "}/{" + PARAM_GROUP_NAME + "}/{" + PARAM_KEY_NAME + "}")
+    Call<BaseResponse> putValue(@Path(value = "container", encoded = true) String kvs_container ,
                                 @Path(PARAM_ID) String id,
                                 @Path(PARAM_KVS_VISIBILITY) String kvs_visibility,
                                 @Path(PARAM_GROUP_NAME) String group_name,
@@ -315,8 +386,8 @@ public interface Api {
      * @param group_name     имя группы
      * @return BaseResponse Основная информация о запросе ( статус, код, сообщение, данные)
      */
-    @DELETE("/v0/{" + PARAM_KVS_CONTAINER + "}/{" + PARAM_ID + "}/kv/{" + PARAM_KVS_VISIBILITY + "}/{" + PARAM_GROUP_NAME + "}")
-    Call<BaseResponse> deleteGroup(@Path(PARAM_KVS_CONTAINER) String kvs_container,
+    @DELETE("/v0/{container}/{" + PARAM_ID + "}/kv/{" + PARAM_KVS_VISIBILITY + "}/{" + PARAM_GROUP_NAME + "}")
+    Call<BaseResponse> deleteGroup(@Path(value = "container", encoded = true) String kvs_container,
                                    @Path(PARAM_ID) String id,
                                    @Path(PARAM_KVS_VISIBILITY) String kvs_visibility,
                                    @Path(PARAM_GROUP_NAME) String group_name);
@@ -331,8 +402,8 @@ public interface Api {
      * @param key            ключ
      * @return BaseResponse Основная информация о запросе ( статус, код, сообщение, данные)
      */
-    @DELETE("/v0/{" + PARAM_KVS_CONTAINER + "}/{" + PARAM_ID + "}/kv/{" + PARAM_KVS_VISIBILITY + "}/{" + PARAM_GROUP_NAME + "}/{" + PARAM_KEY_NAME + "}")
-    Call<BaseResponse> deleteValue(@Path(PARAM_KVS_CONTAINER) String kvs_container,
+    @DELETE("/v0/{container}/{" + PARAM_ID + "}/kv/{" + PARAM_KVS_VISIBILITY + "}/{" + PARAM_GROUP_NAME + "}/{" + PARAM_KEY_NAME + "}")
+    Call<BaseResponse> deleteValue(@Path(value = "container", encoded = true) String kvs_container,
                                    @Path(PARAM_ID) String user_id,
                                    @Path(PARAM_KVS_VISIBILITY) String kvs_visibility,
                                    @Path(PARAM_GROUP_NAME) String group_name,
@@ -663,4 +734,60 @@ public interface Api {
                                     @Body ValueT value);
 
     //endregion Sequences
+
+    //region triggers
+
+    /**
+     * Получает список всех триггеров в очереди команд
+     *
+     * @param deviceId      идентификатор устройства
+     * @param queueName     имя очереди
+     * @return HashMap объектов типа TriggerResponse
+     */
+    @GET("/v0/devices/{"+ PARAM_DEVICE_ID +"}/{" + PARAM_TRIGGER_CONTAINER + "}/{"+ PARAM_QUEUE_NAME +"}/triggers")
+    Call<BaseResponse<HashMap<String, TriggerResponse>>> fetchTriggers(@Path(PARAM_DEVICE_ID) String deviceId,
+                                                                       @Path(PARAM_TRIGGER_CONTAINER) String triggerContainer,
+                                                                       @Path(PARAM_QUEUE_NAME) String queueName);
+
+    /**
+     * Возвращает определенный триггер очереди команд для текущего устройства
+     *
+     * @param deviceID идентификатор устройства
+     * @param commandQueueName имя очереди команд
+     * @param triggerName имя триггера
+     * @return Объект типа TriggerResponse
+     */
+    @GET("/v0/devices/{" + PARAM_DEVICE_ID + "}/{" + PARAM_TRIGGER_CONTAINER + "}/{" + PARAM_QUEUE_NAME + "}/triggers/{" + PARAM_TRIGGER_NAME + "}")
+    Call<BaseResponse<TriggerResponse>> fetchTrigger(@Path(PARAM_DEVICE_ID) String deviceID,
+                                                                 @Path(PARAM_TRIGGER_CONTAINER) String triggerContainer,
+                                                                 @Path(PARAM_QUEUE_NAME) String commandQueueName,
+                                                                 @Path(PARAM_TRIGGER_NAME) String triggerName);
+
+    /**
+     * Изменяет состояние триггера очереди команд для текущего устройства
+     *
+     * @param deviceID идентификатор устройства
+     * @param commandQueueName имя очереди команд
+     * @param triggerName имя триггера
+     * @param body тело запроса
+     * @return BaseResponse Основная информация о запросе (статус, код, сообщение, данные)
+     */
+    @PATCH("/v0/devices/{" + PARAM_DEVICE_ID + "}/{" + PARAM_TRIGGER_CONTAINER + "}/{" + PARAM_QUEUE_NAME + "}/triggers/{" + PARAM_TRIGGER_NAME + "}")
+    Call<BaseResponse> patchTrigger(@Path(PARAM_DEVICE_ID) String deviceID,
+                                                @Path(PARAM_TRIGGER_CONTAINER) String triggerContainer,
+                                                @Path(PARAM_QUEUE_NAME) String commandQueueName,
+                                                @Path(PARAM_TRIGGER_NAME) String triggerName,
+                                                @Body Object body);
+
+    /**
+     * Изменяет состояние нескольких триггеров для текущего устройства
+     *
+     * @param deviceID идентификатор устройства
+     * @param body тело запроса
+     * @return BaseResponse Основная информация о запросе (статус, код, сообщение, данные)
+     */
+    @POST("/v0/devices/{" + PARAM_DEVICE_ID + "}/triggers/toggle-many")
+    Call<BaseResponse> manyTriggerControl(@Path(PARAM_DEVICE_ID) String deviceID,
+                                          @Body Object body);
+    //endregion triggers
 }

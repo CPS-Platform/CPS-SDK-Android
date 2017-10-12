@@ -24,6 +24,7 @@ import ru.ctvt.cps.sdk.errorprocessing.CPSErrorParser;
 import ru.ctvt.cps.sdk.network.Api;
 import ru.ctvt.cps.sdk.network.BaseResponse;
 import ru.ctvt.cps.sdk.network.CommandQueueResponse;
+import ru.ctvt.cps.sdk.network.DeviceResponse;
 import ru.ctvt.cps.sdk.network.SequenceResponse;
 
 import java.io.IOException;
@@ -47,6 +48,7 @@ public class Device {
 
     private String deviceID;
     private String serviceID;
+    private String deviceName;
 
     protected Device(Parcel in) {
         deviceID = in.readString();
@@ -96,9 +98,10 @@ public class Device {
      * @param deviceID   идентификатор устройства
      * @param serviceID идентификатор сервиса
      */
-    Device(String deviceID, String serviceID) {
+    Device(String deviceID, String serviceID, String name) {
         this.deviceID = deviceID;
         this.serviceID = serviceID;
+        this.deviceName = name;
 
         SDKManager.getInstance().getAppComponent().inject(this);
     }
@@ -112,6 +115,21 @@ public class Device {
      */
     public String getDeviceID() {
         return deviceID;
+    }
+
+    public String getName(){
+        return deviceName;
+    }
+
+
+
+    @WorkerThread
+    public void editDeviceName(String newDeviceName) throws IOException, BaseCpsException {
+        Response<BaseResponse<DeviceResponse>> response = api.editDevice(this.deviceID, newDeviceName).execute();
+        if(response.isSuccessful()){
+            this.deviceName = newDeviceName;
+        }
+        else CPSErrorParser.throwCpsException(response.errorBody(), response.code());
     }
 
     /**

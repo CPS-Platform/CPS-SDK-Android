@@ -25,10 +25,12 @@ import ru.ctvt.cps.sdk.dagger.NetworkModule;
  * Класс для инициализации SDK
  */
 public class SDKManager {
-    private static final String CPS_BASE_URL = "http://cps.fvds.ru/";
+    private static final String CPS_BASE_URL = "http://test.cps.fvds.ru/";
     //private static final String CPS_BASE_URL = "http://192.168.1.163:8080/"; тестовый сервер
 
     public interface PreferencesNameConsts {
+        String FIRST_NAME = "first_name";
+        String LAST_NAME = "last_name";
         String FILE_NAME = "preferences.xml";
         String AUTH_TOKEN = "access_token";
         String LOGIN = "login";

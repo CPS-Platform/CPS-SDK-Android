@@ -44,8 +44,8 @@ public class RecorderDevice extends Device {
 
      * @param service_id идентификатор сервиса
      */
-    RecorderDevice(String service_id) {
-        super("current", service_id);
+    RecorderDevice(String service_id, String name) {
+        super("current", service_id, name);
 
         SharedPreferences mSharedPreferences = context.getSharedPreferences(SDKManager.PreferencesNameConsts.FILE_NAME, Context.MODE_PRIVATE);
         if(mSharedPreferences != null)

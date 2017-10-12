@@ -19,6 +19,7 @@ import ru.ctvt.cps.sdk.model.Command;
 import ru.ctvt.cps.sdk.model.CommandQueue;
 import ru.ctvt.cps.sdk.model.Device;
 import ru.ctvt.cps.sdk.model.KeyValueStorage;
+import ru.ctvt.cps.sdk.model.Trigger;
 import ru.ctvt.cps.sdk.model.User;
 
 import javax.inject.Singleton;
@@ -36,4 +37,5 @@ public interface AppComponent {
     void inject(Command x);
     //void inject(Sequence x);
     void inject(ApiWrapper x);
+    void inject(Trigger x);
 }

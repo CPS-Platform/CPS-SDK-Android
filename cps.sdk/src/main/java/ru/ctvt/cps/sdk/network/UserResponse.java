@@ -16,25 +16,27 @@ package ru.ctvt.cps.sdk.network;
 
 import com.google.gson.annotations.SerializedName;
 
-/**
- * Данные об одном устройстве
- */
-public class DeviceResponse {
+
+public class UserResponse {
+
+    @SerializedName("first_name")
+    public String first_name;
+
+    @SerializedName("last_name")
+    public String last_name;
+
     @SerializedName("id")
     public String id;
 
-    @SerializedName("owner_id")
-    public String ownerId;
+    @SerializedName("email")
+    public String email;
 
-    @SerializedName("owner_service_id")
-    public String ownerServiceId;
-
-    @SerializedName("gateway_id")
-    public String gatewayId;
+    @SerializedName("email_confirmed")
+    public boolean email_confirmed;
 
     @SerializedName("created_at")
-    public String createdAt;
+    public String created_at;
 
-    @SerializedName("name")
-    public String name;
+    @SerializedName("language")
+    public String language;
 }

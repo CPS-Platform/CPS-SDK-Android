@@ -24,12 +24,15 @@ import ru.ctvt.cps.sdk.network.Api;
 import ru.ctvt.cps.sdk.network.BaseResponse;
 import ru.ctvt.cps.sdk.network.CommandArguments;
 import ru.ctvt.cps.sdk.network.CommandResponse;
+import ru.ctvt.cps.sdk.network.TriggerResponse;
 import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.inject.Inject;
 
@@ -241,6 +244,21 @@ public class CommandQueue {
             }
             return tmpCommand;
         } else
+            CPSErrorParser.throwCpsException(response.errorBody(), response.code());
+        return null;
+    }
+
+    public ArrayList<Trigger> fetchTriggers() throws IOException, BaseCpsException{
+        Response<BaseResponse<HashMap<String, TriggerResponse>>> response = api.fetchTriggers(parentDevice.getDeviceID(), Trigger.TriggerContainer.commandQueueTrigger.toString(), name).execute();
+        if(response.isSuccessful()) {
+            ArrayList<Trigger> triggers = new ArrayList<>();
+            for (Map.Entry<String, TriggerResponse> entry : response.body().data.entrySet()) {
+                Trigger trigger = new Trigger(entry.getValue().name, entry.getValue().trigger.serviceId, parentDevice.getDeviceID(), this.name, Trigger.TriggerContainer.commandQueueTrigger, entry.getValue().trigger.name, entry.getValue().parameterValues, entry.getValue().enabled);
+                triggers.add(trigger);
+            }
+            return triggers;
+        }
+        else
             CPSErrorParser.throwCpsException(response.errorBody(), response.code());
         return null;
     }
